@@ -32,30 +32,41 @@ def test_get_unexisted_user():
 
 def test_create_user_with_valid_email():
     '''Создание пользователя с уникальной почтой'''
-    new_user = {
-        'name': 'Test User',
-        'email': 'unique@mail.com'
+    new_user_data = {
+        'name': 'New User',
+        'email': 'new.unique@mail.com'
     }
-    response = client.post("/api/v1/user", params=new_user)
-    assert response.status_code == 200
-    assert response.json()['email'] == new_user['email']
-    assert response.json()['name'] == new_user['name']
+    
+    response = client.post("/api/v1/user", json=new_user_data)
+    assert response.status_code == 201
+    assert isinstance(response.json(), int)
 
 def test_create_user_with_invalid_email():
     '''Создание пользователя с почтой, которую использует другой пользователь'''
-    existing_email = users[0]['email']
-    response = client.post("/api/v1/user", params={
-        'name': 'New User',
-        'email': existing_email
-    })
-    assert response.status_code == 400
-    assert response.json() == {'detail': 'Email already registered'}
+    new_user_data = {
+        'name': 'First User',
+        'email': 'duplicate@mail.com'
+    }
+    client.post("/api/v1/user", json=new_user_data)
+    
+    duplicate_user_data = {
+        'name': 'Duplicate User',
+        'email': 'duplicate@mail.com'
+    }
+    
+    response = client.post("/api/v1/user", json=duplicate_user_data)
+    assert response.status_code == 409
 
 def test_delete_user():
     '''Удаление пользователя'''
-    response = client.delete("/api/v1/user", params={'email': 'p.p.petrov@mail.com'})
-    assert response.status_code == 200
-    assert response.json() == {'message': 'User deleted successfully'}
+    user_to_delete = {
+        'name': 'User To Delete',
+        'email': 'delete.me@mail.com'
+    }
+    client.post("/api/v1/user", json=user_to_delete)
     
-    response_check = client.get("/api/v1/user", params={'email': 'p.p.petrov@mail.com'})
-    assert response_check.status_code == 404
+    response = client.delete("/api/v1/user", params={'email': 'delete.me@mail.com'})
+    assert response.status_code == 204
+    
+    response = client.get("/api/v1/user", params={'email': 'delete.me@mail.com'})
+    assert response.status_code == 404
